@@ -1,0 +1,82 @@
+// Dependencies required for the build.gradle itself.
+buildscript {
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+}
+
+plugins {
+id 'java'
+id 'com.github.johnrengelman.shadow' version '2.0.2'
+}
+
+defaultTasks 'shadowJar','copyTask','deleteBuild'
+
+repositories{
+	mavenCentral()
+	maven { url 'http://download.oracle.com/maven' }
+}
+
+dependencies {
+	compile 'com.microsoft.sqlserver:mssql-jdbc:6.2.2.jre8'
+	compile 'org.apache.poi:poi:3.17'
+	compile 'org.apache.poi:poi-ooxml:3.17'
+
+    testImplementation(
+            'org.junit.jupiter:junit-jupiter-api:5.1.0'
+    )
+    testRuntimeOnly(
+            'org.junit.jupiter:junit-jupiter-engine:5.1.0'
+    )
+}
+
+// Part of the Shadow Gradle plugin.
+shadowJar {
+    classifier = null
+    version = null
+	println 'creating a jar!'
+	baseName = project.name
+	    manifest {
+        attributes 'Implementation-Title': baseName,
+                   'Implementation-Version': '0.1.0.rc'
+    }
+	println 'successfully created ' + baseName + '.jar!'
+}
+
+//Already part of the java plugin, but can be added to with properties.
+jar {
+	println 'creating a jar!'
+	baseName = project.name
+	println 'successfully created ' + baseName + '.jar!'
+}
+
+//copies a directory/file to another directory
+task copyTask(type: Copy, group: 'DevBuild') {
+	println 'copying into lib...'
+	from 'build/libs'
+	into 'lib'
+	println 'success!'
+}
+
+//Deletes a particular folder
+task deleteBuild(type: Delete, group: 'DevBuild') {
+	println 'deleting build folder...'
+	delete 'build'
+	followSymlinks = true
+	println 'success!'
+}
+
+//Zip - takes a directory and creates a Zip. supports types Tar,Jar,War and Ear.
+task zip(type: Zip, group: 'DevBuild') {
+    from 'build/libs'
+    into('zip') {
+        from configurations.runtime
+    }
+}
+//Sync - copies source to destination, then remove any non-copied files in the destination as cleanup.
+task libs(type: Sync, group: 'DevBuild') {
+    from configurations.runtime
+    into "$buildDir/libs"
+}
