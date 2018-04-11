@@ -27,21 +27,25 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class SQLToExcel {
 
-	public Connection connectToMSSQLServerWithWindowsAuth(String serverName, String databaseName) {
-		Connection connection = null;
+	public Connection getSQLConnectionMSSQLServerWindowsAuth(String serverName, String databaseName) {
 		StringBuffer sb = new StringBuffer();
 		sb.append("jdbc:sqlserver://" + serverName);
 		sb.append(";databaseName=" + databaseName);
 		sb.append(";integratedSecurity=true;");
-		System.out.println("Testing Connection:");
+		return this.getSQLConnection(sb.toString(), "com.microsoft.sqlserver.jdbc.SQLServerDriver");
+	}
+
+	public Connection getSQLConnection(String jdbcUrl, String driver) {
+		Connection connection = null;
+		System.out.println("Getting Connection:");
 		try {
-			Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-			connection = DriverManager.getConnection(sb.toString());
+			Class.forName(driver);
+			connection = DriverManager.getConnection(driver);
 		} catch (SQLException | ClassNotFoundException e) {
 			System.out.println("Could not get a connection!");
 			e.printStackTrace();
 		}
-		System.out.println("Connection Succeeded!");
+		System.out.println("Getting the Connection Succeeded!");
 		return connection;
 	}
 
@@ -88,7 +92,7 @@ public class SQLToExcel {
 		Properties properties = new Properties();
 		try {
 			properties.load(new FileInputStream(filePath));
-			Connection connection = this.connectToMSSQLServerWithWindowsAuth(properties.getProperty("SQLServer"),
+			Connection connection = this.getSQLConnectionMSSQLServerWindowsAuth(properties.getProperty("SQLServer"),
 					properties.getProperty("SQLDatabase"));
 			ResultSet resultSet = this.runQuery(connection, properties.getProperty("SQLStatement"),
 					Boolean.parseBoolean(properties.getProperty("showQuery", "false").toLowerCase()));
