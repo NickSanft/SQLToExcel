@@ -17,13 +17,15 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.xssf.streaming.SXSSFCell;
+import org.apache.poi.xssf.streaming.SXSSFRow;
+import org.apache.poi.xssf.streaming.SXSSFSheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFFont;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class SQLToExcel {
 
@@ -106,6 +108,7 @@ public class SQLToExcel {
 
 	public void createExcelFile(ResultSet resultSet, String fileName, String sheetName)
 			throws IOException, SQLException {
+		long startTime = System.nanoTime();
 		ResultSetMetaData rsmd = resultSet.getMetaData();
 		int columnNumber = rsmd.getColumnCount();
 		// Declare Excel Objects:
@@ -116,12 +119,12 @@ public class SQLToExcel {
 		Path path = Paths.get(fileName);
 		Files.deleteIfExists(path);
 		FileOutputStream fileOut = new FileOutputStream(fileName);
-		XSSFWorkbook workbook = new XSSFWorkbook();
-		XSSFSheet worksheet = workbook.createSheet(sheetName);
-		XSSFCellStyle style = workbook.createCellStyle();
-		XSSFFont font = workbook.createFont();
-		XSSFRow rowhead = worksheet.createRow(0);
-		XSSFCell cell = rowhead.createCell(0);
+		SXSSFWorkbook workbook = new SXSSFWorkbook(10000);
+		SXSSFSheet worksheet = workbook.createSheet(sheetName);
+		CellStyle style = workbook.createCellStyle();
+		Font font = workbook.createFont();
+		SXSSFRow rowhead = worksheet.createRow(0);
+		SXSSFCell cell = rowhead.createCell(0);
 		int index = 1;
 		font.setUnderline(XSSFFont.U_SINGLE);
 		style.setFont(font);
@@ -130,7 +133,7 @@ public class SQLToExcel {
 			rsmd.getColumnName(i);
 			cell = rowhead.createCell(i - 1);
 			cell.setCellStyle(style);
-			cell.setCellValue(rsmd.getColumnName(i));
+			cell.setCellValue(rsmd.getColumnName(i) == null ? "" : rsmd.getColumnName(i));
 		}
 		// Get total row count:
 		resultSet.last();
@@ -156,9 +159,7 @@ public class SQLToExcel {
 				incrementStep++;
 			}
 		}
-		for (int i = 0; i < worksheet.getRow(0).getPhysicalNumberOfCells(); i++) {
-			worksheet.autoSizeColumn(i);
-		}
+
 		// Freezing top row:
 		worksheet.createFreezePane(0, 1);
 		workbook.write(fileOut);
@@ -166,6 +167,10 @@ public class SQLToExcel {
 		fileOut.flush();
 		fileOut.close();
 		resultSet.close();
+		long difference = System.nanoTime() - startTime;
+		System.out.println("Total Excel generation time: " + String.format("%d min, %d sec",
+				TimeUnit.NANOSECONDS.toHours(difference), TimeUnit.NANOSECONDS.toSeconds(difference)
+						- TimeUnit.MINUTES.toSeconds(TimeUnit.NANOSECONDS.toMinutes(difference))));
 		System.out.println("I finished! File created here:");
 		System.out.println(path);
 	}
