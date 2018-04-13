@@ -29,6 +29,8 @@ import org.apache.poi.xssf.usermodel.XSSFFont;
 
 public class SQLToExcel {
 
+	private boolean debug = false;
+
 	public Connection getSQLConnectionMSSQLServerWindowsAuth(String serverName, String databaseName) {
 		StringBuffer sb = new StringBuffer();
 		sb.append("jdbc:sqlserver://" + serverName);
@@ -39,26 +41,24 @@ public class SQLToExcel {
 
 	public Connection getSQLConnection(String jdbcUrl, String driver) {
 		Connection connection = null;
-		System.out.println("Getting Connection:");
+		this.printDebug("Getting Connection:");
 		try {
 			Class.forName(driver);
 			connection = DriverManager.getConnection(driver);
 		} catch (SQLException | ClassNotFoundException e) {
-			System.out.println("Could not get a connection!");
+			this.printDebug("Could not get a connection!");
 			e.printStackTrace();
 		}
-		System.out.println("Getting the Connection Succeeded!");
+		this.printDebug("Getting the Connection Succeeded!");
 		return connection;
 	}
 
-	public ResultSet runQuery(Connection connection, String query, boolean showQuery) {
+	public ResultSet runQuery(Connection connection, String query) {
 		if (query.endsWith(".sql")) {
 			query = this.getQueryFromFile(query);
 		}
-		System.out.println("Executing Query...");
-		if (showQuery) {
-			System.out.println(query);
-		}
+		this.printDebug("Executing Query...");
+		this.printDebug(query);
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
@@ -96,8 +96,7 @@ public class SQLToExcel {
 			properties.load(new FileInputStream(filePath));
 			Connection connection = this.getSQLConnectionMSSQLServerWindowsAuth(properties.getProperty("SQLServer"),
 					properties.getProperty("SQLDatabase"));
-			ResultSet resultSet = this.runQuery(connection, properties.getProperty("SQLStatement"),
-					Boolean.parseBoolean(properties.getProperty("showQuery", "false").toLowerCase()));
+			ResultSet resultSet = this.runQuery(connection, properties.getProperty("SQLStatement"));
 			this.createExcelFile(resultSet, properties.getProperty("reportName") + "_"
 					+ new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime()) + ".xlsx",
 					properties.getProperty("sheetName"));
@@ -113,7 +112,7 @@ public class SQLToExcel {
 		int columnNumber = rsmd.getColumnCount();
 		// Declare Excel Objects:
 		if (!fileName.endsWith(".xlsx")) {
-			System.out.println("Please check extension. This is not a valid .xlsx file!");
+			this.printDebug("Please check extension. This is not a valid .xlsx file!");
 			throw new RuntimeException();
 		}
 		Path path = Paths.get(fileName);
@@ -144,7 +143,7 @@ public class SQLToExcel {
 		int incrementPercentValue = numRows / incrementPercentageForProgress;
 		resultSet.beforeFirst();
 		// Populate the rest of the rows with data:
-		System.out.println("Generating excel file!");
+		this.printDebug("Generating excel file!");
 		while (resultSet.next()) {
 			rowhead = worksheet.createRow(index);
 			for (int i = 1; i <= columnNumber; i++) {
@@ -153,13 +152,12 @@ public class SQLToExcel {
 			index++;
 			incrementValue++;
 			if (incrementValue >= incrementPercentValue) {
-				System.out.println((incrementStep * incrementPercentageForProgress) + " % of excel file generated... (~"
+				this.printDebug((incrementStep * incrementPercentageForProgress) + " % of excel file generated... (~"
 						+ ((incrementValue * incrementStep) + 3) + " rows)");
 				incrementValue = 0;
 				incrementStep++;
 			}
 		}
-
 		// Freezing top row:
 		worksheet.createFreezePane(0, 1);
 		workbook.write(fileOut);
@@ -168,15 +166,26 @@ public class SQLToExcel {
 		fileOut.close();
 		resultSet.close();
 		long difference = System.nanoTime() - startTime;
-		System.out.println("Total Excel generation time: " + String.format("%d min, %d sec",
+		this.printDebug("Total Excel generation time: " + String.format("%d min, %d sec",
 				TimeUnit.NANOSECONDS.toHours(difference), TimeUnit.NANOSECONDS.toSeconds(difference)
 						- TimeUnit.MINUTES.toSeconds(TimeUnit.NANOSECONDS.toMinutes(difference))));
-		System.out.println("I finished! File created here:");
-		System.out.println(path);
+		this.printDebug("I finished! File created here:");
+		this.printDebug(path);
+	}
+
+	public void printDebug(Object o) {
+		if (this.debug) {
+			System.out.println(o.toString());
+		}
+	}
+
+	public void setDebug(boolean debug) {
+		this.debug = debug;
 	}
 
 	public static void main(String[] args) {
 		SQLToExcel ste = new SQLToExcel();
+		ste.setDebug(true);
 		ste.runQueryFromProperties();
 	}
 
