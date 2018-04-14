@@ -1,6 +1,5 @@
 package nick.dev;
 
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -13,9 +12,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Properties;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
@@ -30,21 +26,65 @@ import org.apache.poi.xssf.usermodel.XSSFFont;
 public class SQLToExcel {
 
 	private boolean debug = false;
+	private String serverName, databaseName, query, jdbcUrl, sqlDriver;
+	private String fileName = "test.xlsx";
+	private String sheetName = "sheet1";
 
-	public Connection getSQLConnectionMSSQLServerWindowsAuth(String serverName, String databaseName) {
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
+	}
+
+	public void setSheetName(String sheetName) {
+		this.sheetName = sheetName;
+	}
+
+	public void setJdbcUrl(String jdbcUrl) {
+		this.jdbcUrl = jdbcUrl;
+	}
+
+	public void setSqlDriver(String sqlDriver) {
+		this.sqlDriver = sqlDriver;
+	}
+
+	public SQLToExcel setDebug(boolean debug) {
+		this.debug = debug;
+		return this;
+	}
+
+	public SQLToExcel setServerName(String serverName) {
+		this.serverName = serverName;
+		return this;
+	}
+
+	public SQLToExcel setDatabaseName(String databaseName) {
+		this.databaseName = databaseName;
+		return this;
+	}
+
+	public SQLToExcel setQuery(String query) {
+		if (query.endsWith(".sql")) {
+			query = this.getQueryFromFile(query);
+		}
+		this.query = query;
+		return this;
+	}
+
+	public SQLToExcel setMSSQLServerWindowsAuthProperties() {
 		StringBuffer sb = new StringBuffer();
 		sb.append("jdbc:sqlserver://" + serverName);
 		sb.append(";databaseName=" + databaseName);
 		sb.append(";integratedSecurity=true;");
-		return this.getSQLConnection(sb.toString(), "com.microsoft.sqlserver.jdbc.SQLServerDriver");
+		this.jdbcUrl = sb.toString();
+		this.sqlDriver = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
+		return this;
 	}
 
-	public Connection getSQLConnection(String jdbcUrl, String driver) {
+	public Connection getSQLConnection() {
 		Connection connection = null;
 		this.printDebug("Getting Connection:");
 		try {
-			Class.forName(driver);
-			connection = DriverManager.getConnection(driver);
+			Class.forName(this.sqlDriver);
+			connection = DriverManager.getConnection(this.jdbcUrl);
 		} catch (SQLException | ClassNotFoundException e) {
 			this.printDebug("Could not get a connection!");
 			e.printStackTrace();
@@ -53,7 +93,7 @@ public class SQLToExcel {
 		return connection;
 	}
 
-	public ResultSet runQuery(Connection connection, String query) {
+	public ResultSet runQuery(Connection connection) {
 		if (query.endsWith(".sql")) {
 			query = this.getQueryFromFile(query);
 		}
@@ -86,27 +126,17 @@ public class SQLToExcel {
 		return sb.toString();
 	}
 
-	public void runQueryFromProperties() {
-		this.runQueryFromProperties("ReportConfig.properties");
-	}
-
-	public void runQueryFromProperties(String filePath) {
-		Properties properties = new Properties();
+	public void build() {
 		try {
-			properties.load(new FileInputStream(filePath));
-			Connection connection = this.getSQLConnectionMSSQLServerWindowsAuth(properties.getProperty("SQLServer"),
-					properties.getProperty("SQLDatabase"));
-			ResultSet resultSet = this.runQuery(connection, properties.getProperty("SQLStatement"));
-			this.createExcelFile(resultSet, properties.getProperty("reportName") + "_"
-					+ new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime()) + ".xlsx",
-					properties.getProperty("sheetName"));
+			Connection connection = this.getSQLConnection();
+			ResultSet resultSet = this.runQuery(connection);
+			this.createExcelFile(resultSet);
 		} catch (IOException | SQLException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void createExcelFile(ResultSet resultSet, String fileName, String sheetName)
-			throws IOException, SQLException {
+	public void createExcelFile(ResultSet resultSet) throws IOException, SQLException {
 		long startTime = System.nanoTime();
 		ResultSetMetaData rsmd = resultSet.getMetaData();
 		int columnNumber = rsmd.getColumnCount();
@@ -179,14 +209,13 @@ public class SQLToExcel {
 		}
 	}
 
-	public void setDebug(boolean debug) {
-		this.debug = debug;
+	public static void builderExample() {
+		new SQLToExcel().setDebug(true).setMSSQLServerWindowsAuthProperties().setDatabaseName("Test")
+				.setServerName("MSSQL1").setQuery("SELECT * FROM products").build();
 	}
 
 	public static void main(String[] args) {
-		SQLToExcel ste = new SQLToExcel();
-		ste.setDebug(true);
-		ste.runQueryFromProperties();
+		SQLToExcel.builderExample();
 	}
 
 }
