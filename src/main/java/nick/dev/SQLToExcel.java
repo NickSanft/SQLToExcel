@@ -210,8 +210,8 @@ public class SQLToExcel {
 	}
 
 	public static void builderExample() {
-		new SQLToExcel().setDebug(true).setMSSQLServerWindowsAuthProperties().setDatabaseName("Test")
-				.setServerName("MSSQL1").setQuery("SELECT * FROM products").build();
+		new SQLToExcel().setDebug(true).setDatabaseName("Test").setServerName("MSSQL1")
+				.setMSSQLServerWindowsAuthProperties().setQuery("SELECT * FROM products").build();
 	}
 
 	public static void main(String[] args) {
