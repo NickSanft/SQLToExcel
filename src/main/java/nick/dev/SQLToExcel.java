@@ -29,6 +29,7 @@ public class SQLToExcel {
 	private String serverName, databaseName, query, jdbcUrl, sqlDriver;
 	private String fileName = "test.xlsx";
 	private String sheetName = "sheet1";
+	private int streamWindowSize = 10000;
 
 	public void setFileName(String fileName) {
 		this.fileName = fileName;
@@ -58,6 +59,11 @@ public class SQLToExcel {
 
 	public SQLToExcel setDatabaseName(String databaseName) {
 		this.databaseName = databaseName;
+		return this;
+	}
+
+	public SQLToExcel setStreamWindowSize(int streamWindowSize) {
+		this.streamWindowSize = streamWindowSize;
 		return this;
 	}
 
@@ -148,7 +154,7 @@ public class SQLToExcel {
 		Path path = Paths.get(fileName);
 		Files.deleteIfExists(path);
 		FileOutputStream fileOut = new FileOutputStream(fileName);
-		SXSSFWorkbook workbook = new SXSSFWorkbook(10000);
+		SXSSFWorkbook workbook = new SXSSFWorkbook(streamWindowSize);
 		SXSSFSheet worksheet = workbook.createSheet(sheetName);
 		CellStyle style = workbook.createCellStyle();
 		Font font = workbook.createFont();
