@@ -30,6 +30,11 @@ public class SQLToExcel {
 	private String fileName = "test.xlsx";
 	private String sheetName = "sheet1";
 	private int streamWindowSize = 10000;
+	private int incrementPercentageForProgress = 10;
+
+	public void setIncrementPercentageForProgress(int incrementPercentageForProgress) {
+		this.incrementPercentageForProgress = incrementPercentageForProgress;
+	}
 
 	public void setFileName(String fileName) {
 		this.fileName = fileName;
@@ -173,7 +178,6 @@ public class SQLToExcel {
 		// Get total row count:
 		resultSet.last();
 		int numRows = resultSet.getRow();
-		int incrementPercentageForProgress = 10;
 		int incrementStep = 1;
 		int incrementValue = 0;
 		int incrementPercentValue = numRows / incrementPercentageForProgress;
